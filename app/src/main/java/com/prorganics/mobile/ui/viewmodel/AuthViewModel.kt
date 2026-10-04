@@ -1,22 +1,23 @@
 package com.prorganics.mobile.ui.viewmodel
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.prorganics.mobile.data.local.dao.UsuarioDao
 import com.prorganics.mobile.data.local.entity.UsuarioEntity
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class AuthViewModel(
     private val usuarioDao: UsuarioDao
 ) : ViewModel() {
 
-    private val _mensaje = MutableLiveData<String>()
-    val mensaje: LiveData<String> = _mensaje
+    private val _mensaje = MutableStateFlow("")
+    val mensaje: StateFlow<String> = _mensaje.asStateFlow()
 
-    private val _usuarioActual = MutableLiveData<UsuarioEntity?>()
-    val usuarioActual: LiveData<UsuarioEntity?> = _usuarioActual
+    private val _usuarioActual = MutableStateFlow<UsuarioEntity?>(null)
+    val usuarioActual: StateFlow<UsuarioEntity?> = _usuarioActual.asStateFlow()
 
     fun iniciarSesion(email: String) {
         if (email.isBlank()) {
