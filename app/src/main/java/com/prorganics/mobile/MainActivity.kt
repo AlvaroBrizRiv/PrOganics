@@ -1,9 +1,13 @@
 package com.prorganics.mobile
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -14,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.content.ContextCompat
 import com.prorganics.mobile.data.local.PrOrganicsDatabase
 import com.prorganics.mobile.ui.theme.PrOrganicsTheme
 import com.prorganics.mobile.ui.viewmodel.AuthViewModel
@@ -41,10 +46,27 @@ class MainActivity : ComponentActivity() {
         viewModelFactory
     }
 
+    // Solicita el permiso de notificaciones en Android 13 o superior
+    private val solicitarPermisoNotificaciones =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { permisoConcedido ->
+
+            if (permisoConcedido) {
+                mostrarNotificacionOfertas(this)
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()
+
+        // Crea el canal necesario para mostrar notificaciones
+        crearCanalNotificaciones(this)
+
+        // Comprueba el permiso y muestra la notificación
+        comprobarPermisoNotificaciones()
 
         setContent {
             PrOrganicsTheme {
@@ -56,6 +78,28 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
+        }
+    }
+
+    private fun comprobarPermisoNotificaciones() {
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+
+            if (
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                mostrarNotificacionOfertas(this)
+            } else {
+                solicitarPermisoNotificaciones.launch(
+                    Manifest.permission.POST_NOTIFICATIONS
+                )
+            }
+
+        } else {
+            mostrarNotificacionOfertas(this)
         }
     }
 }
