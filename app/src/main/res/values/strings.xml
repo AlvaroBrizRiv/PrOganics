@@ -1,5 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
+
+    <!-- Aplicación -->
     <string name="app_name">PrOrganics</string>
-    <string name= "Welcome_message">Bienvenidos a tu tienda de productos orgánicos</string>
-    <string name= "login_button">Iniciar Sesión</string>
+
+    <!-- Inicio -->
+    <string name="welcome_message">Bienvenidos a tu tienda de productos orgánicos</string>
+
+    <!-- Navegación -->
+    <string name="home_title">Inicio</string>
+    <string name="catalog_title">Catálogo</string>
+    <string name="categories_title">Categorías</string>
+    <string name="orders_title">Pedidos</string>
+    <string name="profile_title">Mi perfil</string>
+
+    <!-- Usuario -->
+    <string name="login_button">Iniciar sesión</string>
+    <string name="register_button">Registrarse</string>
+    <string name="logout_button">Cerrar sesión</string>
+    <string name="email_label">Correo electrónico</string>
+    <string name="password_label">Contraseña</string>
+    <string name="name_label">Nombre</string>
+
+    <!-- Productos y pedidos -->
+    <string name="add_to_order_button">Agregar al pedido</string>
+    <string name="view_order_button">Ver pedido</string>
+    <string name="confirm_order_button">Confirmar pedido</string>
+
+    <!-- Mensajes -->
+    <string name="required_field_error">Este campo es obligatorio</string>
+    <string name="invalid_email_error">Ingresa un correo electrónico válido</string>
+    <string name="generic_error">Ocurrió un error. Inténtalo nuevamente.</string>
+
 </resources>
