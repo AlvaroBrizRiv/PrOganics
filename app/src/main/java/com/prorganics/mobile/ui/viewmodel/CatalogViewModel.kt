@@ -44,6 +44,11 @@ class CatalogViewModel(
                 }
             }.collect { productosFiltrados ->
                 _productos.value = productosFiltrados
+                
+                // Si el catálogo está vacío, ejecutar el script para inyectar datos de prueba
+                if (productosFiltrados.isEmpty() && _filtro.value.isBlank()) {
+                    inyectarProductosDePrueba(usuarioId)
+                }
             }
         }
     }
@@ -51,5 +56,23 @@ class CatalogViewModel(
     // Actualiza el filtro de búsqueda
     fun filtrarProductos(texto: String) {
         _filtro.value = texto
+    }
+
+    // Inyectar productos de prueba en la base de datos (Script de inicialización)
+    fun inyectarProductosDePrueba(usuarioId: Long) {
+        viewModelScope.launch {
+            val productosPrueba = listOf(
+                ProductoEntity(usuarioId = usuarioId, nombre = "Manzanas Fuji Orgánicas", descripcion = "Frutas", precio = 3.50, stock = 100),
+                ProductoEntity(usuarioId = usuarioId, nombre = "Zanahorias Bio", descripcion = "Verduras", precio = 1.20, stock = 100),
+                ProductoEntity(usuarioId = usuarioId, nombre = "Miel de Abeja Pura", descripcion = "Miel", precio = 8.00, stock = 100),
+                ProductoEntity(usuarioId = usuarioId, nombre = "Lechuga Romana Fresca", descripcion = "Verduras", precio = 1.80, stock = 100),
+                ProductoEntity(usuarioId = usuarioId, nombre = "Tomates Cherry", descripcion = "Verduras", precio = 2.90, stock = 100),
+                ProductoEntity(usuarioId = usuarioId, nombre = "Plátanos Orgánicos", descripcion = "Frutas", precio = 2.10, stock = 100)
+            )
+            
+            productosPrueba.forEach { producto ->
+                productoDao.registrar(producto)
+            }
+        }
     }
 }

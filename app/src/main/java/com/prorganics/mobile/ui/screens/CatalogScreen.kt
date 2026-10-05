@@ -47,19 +47,22 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.collectAsState
+import com.prorganics.mobile.data.local.entity.ProductoEntity
 import com.prorganics.mobile.ui.theme.PrOrganicsTheme
+import com.prorganics.mobile.ui.viewmodel.CatalogViewModel
 import kotlinx.coroutines.launch
-
-// Entidad simulada para la UI (hasta que conectemos el ViewModel)
-data class ProductoUI(val id: Int, val nombre: String, val precio: Double, val categoria: String)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CatalogScreen(
+    catalogViewModel: CatalogViewModel,
     onNavigateToLogin: () -> Unit,
     onNavigateToRegister: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val productos by catalogViewModel.productos.collectAsState()
+
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -67,20 +70,6 @@ fun CatalogScreen(
     val categorias = listOf("Todos", "Frutas", "Verduras", "Miel", "Lácteos")
     var categoriaSeleccionada by remember { mutableStateOf("Todos") }
 
-    val productos = listOf(
-        ProductoUI(1, "Manzanas Fuji Orgánicas", 3.50, "Frutas"),
-        ProductoUI(2, "Zanahorias Bio", 1.20, "Verduras"),
-        ProductoUI(3, "Miel de Abeja Pura", 8.00, "Miel"),
-        ProductoUI(4, "Lechuga Romana Fresca", 1.80, "Verduras"),
-        ProductoUI(5, "Tomates Cherry", 2.90, "Verduras"),
-        ProductoUI(6, "Plátanos Orgánicos", 2.10, "Frutas")
-    )
-    
-    val productosFiltrados = if (categoriaSeleccionada == "Todos") {
-        productos
-    } else {
-        productos.filter { it.categoria == categoriaSeleccionada }
-    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -184,6 +173,13 @@ fun CatalogScreen(
                 }
 
                 // Listado de Productos en Grid
+                
+                val productosFiltrados = if (categoriaSeleccionada == "Todos") {
+                    productos
+                } else {
+                    productos.filter { it.descripcion == categoriaSeleccionada }
+                }
+                
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 150.dp),
                     contentPadding = PaddingValues(16.dp),
@@ -203,7 +199,7 @@ fun CatalogScreen(
 }
 
 @Composable
-fun ProductoCard(producto: ProductoUI) {
+fun ProductoCard(producto: ProductoEntity) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -247,9 +243,5 @@ fun ProductoCard(producto: ProductoUI) {
 @Preview(showBackground = true)
 @Composable
 fun CatalogScreenPreview() {
-    PrOrganicsTheme {
-        Surface {
-            CatalogScreen(onNavigateToLogin = {}, onNavigateToRegister = {})
-        }
-    }
+    // Preview uses empty parameters for simplicity
 }

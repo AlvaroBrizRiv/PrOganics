@@ -1,101 +1,142 @@
 package com.prorganics.mobile
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.lifecycle.lifecycleScope
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import com.prorganics.mobile.data.local.PrOrganicsDatabase
-import com.prorganics.mobile.data.local.entity.UsuarioEntity
 import com.prorganics.mobile.ui.screens.CatalogScreen
 import com.prorganics.mobile.ui.screens.LoginScreen
 import com.prorganics.mobile.ui.screens.RegisterScreen
 import com.prorganics.mobile.ui.theme.PrOrganicsTheme
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-
-// Integridad: Control de estado simple para la navegación (sin dependencias extra complejas)
-enum class AppScreen {
-    CATALOG, LOGIN, REGISTER
-}
+import com.prorganics.mobile.ui.viewmodel.AuthViewModel
+import com.prorganics.mobile.ui.viewmodel.CatalogViewModel
+import com.prorganics.mobile.ui.viewmodel.ViewModelFactory
 
 class MainActivity : ComponentActivity() {
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+    private val database by lazy {
+        PrOrganicsDatabase.getDatabase(applicationContext)
+    }
 
-        // Prueba de ejecución de consultas a la BD local
-        lifecycleScope.launch(Dispatchers.IO) {
-            val db = PrOrganicsDatabase.getDatabase(applicationContext)
-            Log.d("MainActivityLog", "Solicitando productos a la base de datos...")
-            
-            db.productoDao().listarPorUsuario(1).collect { productos ->
-                Log.d("MainActivityLog", "Se obtuvieron ${productos.size} productos desde SQLite/Room:")
-                productos.forEach { producto ->
-                    Log.d("MainActivityLog", " - [ID ${producto.id}] ${producto.nombre} ($${producto.precio})")
-                }
+    private val viewModelFactory by lazy {
+        ViewModelFactory(
+            usuarioDao = database.usuarioDao(),
+            productoDao = database.productoDao()
+        )
+    }
+
+    private val authViewModel: AuthViewModel by viewModels {
+        viewModelFactory
+    }
+
+    private val catalogViewModel: CatalogViewModel by viewModels {
+        viewModelFactory
+    }
+
+    private val solicitarPermisoNotificaciones =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { permisoConcedido ->
+
+            if (permisoConcedido) {
+                mostrarNotificacionOfertas(this)
             }
         }
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        enableEdgeToEdge()
+
+        crearCanalNotificaciones(this)
+        comprobarPermisoNotificaciones()
+
         setContent {
             PrOrganicsTheme {
-                // Estado que controla qué pantalla se muestra. Inicia en CATALOG.
-                var currentScreen by remember { mutableStateOf(AppScreen.CATALOG) }
+                val navController = rememberNavController()
+                val usuarioActual by authViewModel.usuarioActual.collectAsState()
 
-                when (currentScreen) {
-                    AppScreen.CATALOG -> {
-                        CatalogScreen(
-                            onNavigateToLogin = { currentScreen = AppScreen.LOGIN },
-                            onNavigateToRegister = { currentScreen = AppScreen.REGISTER }
-                        )
+                LaunchedEffect(usuarioActual) {
+                    usuarioActual?.let {
+                        catalogViewModel.cargarProductos(it.id)
                     }
-                    AppScreen.LOGIN -> {
-                        LoginScreen(
-                            onLoginClick = { email, _ -> 
-                                lifecycleScope.launch(Dispatchers.IO) {
-                                    val db = PrOrganicsDatabase.getDatabase(applicationContext)
-                                    val usuario = db.usuarioDao().login(email)
-                                    
-                                    if (usuario != null) {
-                                        Log.d("MainActivityLog", "Login exitoso. Bienvenido, ${usuario.nombre}")
-                                        currentScreen = AppScreen.CATALOG // Redirigir al catálogo
-                                    } else {
-                                        Log.d("MainActivityLog", "Error: Credenciales inválidas o usuario no existe.")
-                                    }
+                }
+                
+                Scaffold(
+                    modifier = Modifier.fillMaxSize()
+                ) { innerPadding ->
+                    NavHost(
+                        navController = navController,
+                        startDestination = "catalog",
+                        modifier = Modifier.padding(innerPadding)
+                    ) {
+                        composable("catalog") {
+                            CatalogScreen(
+                                catalogViewModel = catalogViewModel,
+                                onNavigateToLogin = { navController.navigate("login") },
+                                onNavigateToRegister = { navController.navigate("register") }
+                            )
+                        }
+                        composable("login") {
+                            LoginScreen(
+                                onLoginClick = { email, _ ->
+                                    authViewModel.iniciarSesion(email)
+                                },
+                                onBackClick = { navController.popBackStack() }
+                            )
+                        }
+                        composable("register") {
+                            RegisterScreen(
+                                onRegisterClick = { nombre, email, _ ->
+                                    authViewModel.registrarUsuario(nombre, email)
                                 }
-                            },
-                            onBackClick = { currentScreen = AppScreen.CATALOG }
-                        )
-                    }
-                    AppScreen.REGISTER -> {
-                        RegisterScreen(
-                            onRegisterClick = { nombre, email, _ -> 
-                                lifecycleScope.launch(Dispatchers.IO) {
-                                    val db = PrOrganicsDatabase.getDatabase(applicationContext)
-                                    
-                                    // Se registra el nuevo usuario en Room (SQLite)
-                                    // (Nota: No se almacena la contraseña porque no está en la Entidad por motivos de prueba/seguridad básica)
-                                    val nuevoUsuario = UsuarioEntity(
-                                        nombre = nombre,
-                                        email = email
-                                    )
-                                    
-                                    val id = db.usuarioDao().registrar(nuevoUsuario)
-                                    Log.d("MainActivityLog", "Registro exitoso en BD. Nuevo ID de usuario: $id")
-                                    
-                                    currentScreen = AppScreen.LOGIN // Redirigir al login tras registrarse
-                                }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             }
         }
     }
+
+    private fun comprobarPermisoNotificaciones() {
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+
+            if (
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                mostrarNotificacionOfertas(this)
+            } else {
+                solicitarPermisoNotificaciones.launch(
+                    Manifest.permission.POST_NOTIFICATIONS
+                )
+            }
+
+        } else {
+            mostrarNotificacionOfertas(this)
+        }
+    }
 }
+
