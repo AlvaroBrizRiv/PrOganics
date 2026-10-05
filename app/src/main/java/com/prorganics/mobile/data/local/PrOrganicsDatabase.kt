@@ -15,7 +15,7 @@ import com.prorganics.mobile.data.local.entity.UsuarioEntity
  */
 @Database(
     entities = [UsuarioEntity::class, ProductoEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false // Escalabilidad: false para proyectos iniciales, true cuando implementes migraciones complejas
 )
 abstract class PrOrganicsDatabase : RoomDatabase() {
