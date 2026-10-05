@@ -35,7 +35,9 @@ abstract class PrOrganicsDatabase : RoomDatabase() {
                     context.applicationContext,
                     PrOrganicsDatabase::class.java,
                     "prorganics_db"
-                ).build()
+                )
+                .fallbackToDestructiveMigration()
+                .build()
                 INSTANCE = instance
                 instance
             }
