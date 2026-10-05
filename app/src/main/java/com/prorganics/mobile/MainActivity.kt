@@ -75,9 +75,17 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val usuarioActual by authViewModel.usuarioActual.collectAsState()
 
+                // Cargar los productos inmediatamente, sin importar el usuario
+                LaunchedEffect(Unit) {
+                    catalogViewModel.cargarProductos()
+                }
+
                 LaunchedEffect(usuarioActual) {
                     usuarioActual?.let {
-                        catalogViewModel.cargarProductos(it.id)
+                        // Si se inició sesión/registró exitosamente y no estamos en el catálogo, volvemos a él.
+                        if (navController.currentBackStackEntry?.destination?.route != "catalog") {
+                            navController.popBackStack("catalog", inclusive = false)
+                        }
                     }
                 }
                 
@@ -92,23 +100,41 @@ class MainActivity : ComponentActivity() {
                         composable("catalog") {
                             CatalogScreen(
                                 catalogViewModel = catalogViewModel,
+                                authViewModel = authViewModel,
                                 onNavigateToLogin = { navController.navigate("login") },
                                 onNavigateToRegister = { navController.navigate("register") }
                             )
                         }
                         composable("login") {
+                            // Limpiamos los mensajes del ViewModel antes de entrar a la pantalla
+                            LaunchedEffect(Unit) {
+                                authViewModel.limpiarMensaje()
+                            }
                             LoginScreen(
-                                onLoginClick = { email, _ ->
-                                    authViewModel.iniciarSesion(email)
+                                onLoginClick = { email, password ->
+                                    authViewModel.iniciarSesion(email, password)
                                 },
-                                onBackClick = { navController.popBackStack() }
+                                onBackClick = { navController.popBackStack() },
+                                onNavigateToRegister = { navController.navigate("register") },
+                                authViewModel = authViewModel
                             )
                         }
                         composable("register") {
+                            // Limpiamos los mensajes del ViewModel antes de entrar a la pantalla
+                            LaunchedEffect(Unit) {
+                                authViewModel.limpiarMensaje()
+                            }
                             RegisterScreen(
-                                onRegisterClick = { nombre, email, _ ->
-                                    authViewModel.registrarUsuario(nombre, email)
-                                }
+                                onRegisterClick = { nombre, email, password ->
+                                    authViewModel.registrarUsuario(nombre, email, password)
+                                },
+                                onBackClick = { navController.popBackStack() },
+                                onNavigateToLogin = {
+                                    navController.navigate("login") {
+                                        popUpTo("login") { inclusive = true }
+                                    }
+                                },
+                                authViewModel = authViewModel
                             )
                         }
                     }

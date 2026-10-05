@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.collectAsState
 import com.prorganics.mobile.data.local.entity.ProductoEntity
 import com.prorganics.mobile.ui.theme.PrOrganicsTheme
+import com.prorganics.mobile.ui.viewmodel.AuthViewModel
 import com.prorganics.mobile.ui.viewmodel.CatalogViewModel
 import kotlinx.coroutines.launch
 
@@ -57,11 +58,13 @@ import kotlinx.coroutines.launch
 @Composable
 fun CatalogScreen(
     catalogViewModel: CatalogViewModel,
+    authViewModel: AuthViewModel,
     onNavigateToLogin: () -> Unit,
     onNavigateToRegister: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val productos by catalogViewModel.productos.collectAsState()
+    val usuarioActual by authViewModel.usuarioActual.collectAsState()
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -81,40 +84,56 @@ fun CatalogScreen(
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // Título y UX si el usuario está logueado o no
                     Text(
-                        text = "PrOrganics",
+                        text = if (usuarioActual != null) "¡Hola, ${usuarioActual?.nombre}!" else "PrOrganics",
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(bottom = 32.dp, top = 24.dp)
                     )
 
-                    // UX: Botones de distinto color para diferenciar acciones clave
-                    Button(
-                        onClick = { 
-                            scope.launch { drawerState.close() }
-                            onNavigateToLogin() 
-                        },
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
-                    ) {
-                        Text("Iniciar Sesión")
-                    }
+                    if (usuarioActual == null) {
+                        // UX: Botones de distinto color para diferenciar acciones clave
+                        Button(
+                            onClick = { 
+                                scope.launch { drawerState.close() }
+                                onNavigateToLogin() 
+                            },
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Text("Iniciar Sesión")
+                        }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                    Button(
-                        onClick = { 
-                            scope.launch { drawerState.close() }
-                            onNavigateToRegister() 
-                        },
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondary
-                        )
-                    ) {
-                        Text("Registrarse")
+                        Button(
+                            onClick = { 
+                                scope.launch { drawerState.close() }
+                                onNavigateToRegister() 
+                            },
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondary
+                            )
+                        ) {
+                            Text("Registrarse")
+                        }
+                    } else {
+                        Button(
+                            onClick = { 
+                                scope.launch { drawerState.close() }
+                                authViewModel.cerrarSesion() 
+                            },
+                            modifier = Modifier.fillMaxWidth().height(50.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Text("Cerrar Sesión")
+                        }
                     }
                 }
             }
@@ -223,8 +242,11 @@ fun ProductoCard(producto: ProductoEntity) {
                 overflow = TextOverflow.Ellipsis
             )
             
+            // Formatear precio para pesos chilenos (sin decimales)
+            val precioCLP = "%,d".format(producto.precio.toInt()).replace(',', '.')
+            
             Text(
-                text = "\$${producto.precio}",
+                text = "\$$precioCLP",
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Bold

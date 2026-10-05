@@ -16,8 +16,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,17 +32,22 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.prorganics.mobile.ui.theme.PrOrganicsTheme
+import com.prorganics.mobile.ui.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     onLoginClick: (String, String) -> Unit,
     onBackClick: () -> Unit,
+    onNavigateToRegister: () -> Unit,
+    authViewModel: AuthViewModel,
     modifier: Modifier = Modifier
 ) {
     // ESTADO (Integridad): Mantener los datos inmutables fuera de la vista cuando se envíen
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    
+    val mensaje by authViewModel.mensaje.collectAsState()
 
     Scaffold(
         topBar = {
@@ -104,12 +111,34 @@ fun LoginScreen(
                 onClick = { onLoginClick(email, password) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp), // UX: Altura táctil mínima de 48dp
-                enabled = email.isNotBlank() && password.isNotBlank() // Integridad: Evitar envíos vacíos
+                    .height(50.dp) // UX: Altura táctil mínima de 48dp
             ) {
                 Text(
                     text = "Ingresar",
                     style = MaterialTheme.typography.titleMedium
+                )
+            }
+            
+            if (mensaje.isNotBlank()) {
+                Text(
+                    text = mensaje,
+                    color = if (mensaje.contains("fallido") || mensaje.contains("inválidos") || mensaje.contains("Rellene")) 
+                            MaterialTheme.colorScheme.error 
+                          else 
+                            MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+
+            TextButton(
+                onClick = onNavigateToRegister,
+                modifier = Modifier.padding(top = 16.dp)
+            ) {
+                Text(
+                    text = "¿No tienes cuenta? Regístrate",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }
@@ -119,9 +148,5 @@ fun LoginScreen(
 @Preview(showBackground = true)
 @Composable
 fun LoginScreenPreview() {
-    PrOrganicsTheme {
-        Surface {
-            LoginScreen(onLoginClick = { _, _ -> }, onBackClick = {})
-        }
-    }
+    // Preview omitted for brevity since it requires ViewModel instance
 }

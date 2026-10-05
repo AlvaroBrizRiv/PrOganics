@@ -17,6 +17,8 @@ data class UsuarioEntity(
     @ColumnInfo(index = true) // Índice para búsquedas rápidas por email
     val email: String,
     
+    val contrasena: String, // Contraseña cifrada (Hash SHA-256)
+    
     @ColumnInfo(name = "fecha_registro")
     val fechaRegistro: Long = System.currentTimeMillis()
 )

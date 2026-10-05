@@ -16,6 +16,6 @@ interface ProductoDao {
 
     // ESCALABILIDAD Y DISPONIBILIDAD: Retornar 'Flow' permite a la UI escuchar cambios 
     // en la BD en tiempo real, sin bloquear el hilo principal ni requerir recargas manuales.
-    @Query("SELECT * FROM productos WHERE usuario_id = :usuarioId ORDER BY fecha_creacion DESC")
-    fun listarPorUsuario(usuarioId: Long): Flow<List<ProductoEntity>>
+    @Query("SELECT * FROM productos ORDER BY fecha_creacion DESC")
+    fun listarTodos(): Flow<List<ProductoEntity>>
 }
